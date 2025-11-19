@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -9,10 +9,18 @@
 
     <!-- Package metadata -->
     <PackageId>Spittoon.Core</PackageId>
-    <Title>Spittoon Core</Title>
+    <Title>Spittoon</Title>
     <Description>Core types and serializer/deserializer for the SPITTOON format.</Description>
     <Authors>FuncularLabs</Authors>
     <RepositoryUrl>https://github.com/FuncularLabs/Spittoon</RepositoryUrl>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+    <PackageProjectUrl>https://github.com/FuncularLabs/Spittoon</PackageProjectUrl>
+    <Copyright>© 2025 Funcular Labs, Inc.</Copyright>
+    <PackageIcon>spittoon-logo-small.jpg</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>#Spittoon; #Serialization; #TOON; #JSON; #CSV; #CSharp; #.NET</PackageTags>
+    <PackageReleaseNotes>Initial package release</PackageReleaseNotes>
   </PropertyGroup>
 
   <ItemGroup>
@@ -25,10 +33,17 @@
 
   <!-- Include the built Spittoon.Validation assembly inside the nupkg so consumers don't need a separate package reference -->
   <ItemGroup>
-    <None Include="$(MSBuildProjectDirectory)\..\Spittoon.Validation\bin\$(Configuration)\net8.0\Spittoon.Validation.dll"
-          Condition="Exists('$(MSBuildProjectDirectory)\..\Spittoon.Validation\bin\$(Configuration)\net8.0\Spittoon.Validation.dll')">
+    <None Include="$(MSBuildProjectDirectory)\..\Spittoon.Validation\bin\$(Configuration)\net8.0\Spittoon.Validation.dll" Condition="Exists('$(MSBuildProjectDirectory)\..\Spittoon.Validation\bin\$(Configuration)\net8.0\Spittoon.Validation.dll')">
       <Pack>true</Pack>
       <PackagePath>lib/net8.0/</PackagePath>
+    </None>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\spittoon-logo-small.jpg">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
     </None>
   </ItemGroup>
 
