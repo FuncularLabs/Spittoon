@@ -162,16 +162,27 @@ print(urllib.parse.quote(sys.argv[1], safe=''))
 PY
 "$pkg_name")
           echo "Encoded name: $enc_name"
-          http_code=$(curl -sS -o /dev/null -w "%{http_code}" -X POST \
+
+          # Save response and verbose output for diagnostics
+          resp_file="/tmp/upload_resp.txt"
+          echo "Uploading to $upload_url_base?name=$enc_name, response will be saved to $resp_file"
+          http_code=$(curl -sS -w "%{http_code}" -o "$resp_file" -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Content-Type: application/octet-stream" \
             --data-binary @"$nupkg_path" \
-            "$upload_url_base?name=$enc_name")
+            "$upload_url_base?name=$enc_name") || true
+
           echo "Upload HTTP code: $http_code"
           if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
             echo "Upload succeeded"
           else
             echo "Upload failed with HTTP code $http_code"
+            echo "=== Response body ==="
+            cat "$resp_file" || true
+            echo "=== End response body ==="
+            echo "=== Curl verbose info (attempt) ==="
+            curl -v -H "Authorization: token $GITHUB_TOKEN" -H "Content-Type: application/octet-stream" --data-binary @"$nupkg_path" "$upload_url_base?name=$enc_name" || true
+            echo "=== End verbose ==="
             echo "Dumping release info for debug:"
             curl -sS -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/$release_id" || true
             exit 1
