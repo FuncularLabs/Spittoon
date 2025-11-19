@@ -1,8 +1,13 @@
 ### SPITTOON–Semicolon-Punctuated, Interoperable, Tersely-Typed Open Object Notation
 
-**Version:** 0.1.4
+**Version:** 0.1.5
 
 ![SPITTOON logo](https://raw.githubusercontent.com/FuncularLabs/Spittoon/main/spittoon-logo-small.jpg)
+
+[![NuGet](https://img.shields.io/nuget/v/Spittoon.Core.svg)](https://www.nuget.org/packages/Spittoon.Core)
+[![Downloads](https://img.shields.io/nuget/dt/Spittoon.Core.svg)](https://www.nuget.org/packages/Spittoon.Core)
+[![CI status](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main&label=CI)](https://github.com/FuncularLabs/Spittoon/actions)
+[![Tests](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main&label=Tests)](https://github.com/FuncularLabs/Spittoon/actions)
 
 ## Reserved keywords
 
@@ -26,11 +31,6 @@ We recommend using the extension `.spitsd` for SPITTOON schema files (Spittoon S
 Because JSON had too much baggage, CSV was too flat, TOON too quirky in the brackets, and we needed something with actual spit. Terse, human-readable, hierarchical + tabular-ready serialization: comma-or-semicolon separators, optional SSCH schema validation, and a mullet that’s strictly business in the front, pure party in the back.
 
 > First there was CSV. Then XML arrived wearing a tuxedo nobody asked for. Then JSON showed up, drunk on quotes and braces. Then TOON tried to fix everything and mostly just confused people. And now, finally, the format to end the format wars: **SPITTOON**.
-
-[![NuGet](https://img.shields.io/nuget/v/Spittoon.Core.svg)](https://www.nuget.org/packages/Spittoon.Core)
-[![CI status](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main&label=CI)](https://github.com/FuncularLabs/Spittoon/actions)
-[![Tests](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main&label=Tests)](https://github.com/FuncularLabs/Spittoon/actions)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Why SPITTOON exists
 
@@ -218,6 +218,7 @@ The serializer and validator already understand this `header`+`rows` shape and w
 ## Badges
 
 [![NuGet](https://img.shields.io/nuget/v/Spittoon.Core.svg)](https://www.nuget.org/packages/Spittoon.Core)
+[![Downloads](https://img.shields.io/nuget/dt/Spittoon.Core.svg)](https://www.nuget.org/packages/Spittoon.Core)
 [![CI status](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main&label=CI)](https://github.com/FuncularLabs/Spittoon/actions)
 [![Tests](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main&label=Tests)](https://github.com/FuncularLabs/Spittoon/actions)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
