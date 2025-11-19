@@ -42,7 +42,7 @@ namespace Spittoon.Tests
 
             string spittoon = _serializer.Serialize(obj, Formatting.Indented);
 
-            // Just verify it contains the important bits – exact punctuation may vary with comma/semicolon duality
+            // Just verify it contains the important bits  exact punctuation may vary with comma/semicolon duality
             Assert.Contains("\"name\":\"Gus\"", spittoon);
             Assert.Contains("\"distance\":9.8", spittoon);
             Assert.Contains("\"active\":true", spittoon);
@@ -50,11 +50,18 @@ namespace Spittoon.Tests
 
             object? roundTripped = _deserializer.Parse(spittoon);
             var dict = Assert.IsType<Dictionary<string, object?>>(roundTripped);
-            Assert.Equal("Gus", dict["name"]);
-            Assert.Equal(9.8, dict["distance"]);
-            Assert.True((bool)dict["active"]!);
+            var name = Assert.IsType<string>(dict["name"]);
+            Assert.Equal("Gus", name);
+
+            var distance = Assert.IsType<double>(dict["distance"]);
+            Assert.Equal(9.8, distance);
+
+            var active = Assert.IsType<bool>(dict["active"]);
+            Assert.True(active);
+
             var tags = Assert.IsType<List<object?>>(dict["tags"]);
-            Assert.Equal(new[] { "champ", "legend" }, tags.Cast<string>());
+            var tagStrings = tags.Select(t => Assert.IsType<string>(t)).ToArray();
+            Assert.Equal(new[] { "champ", "legend" }, tagStrings);
         }
 
         [Fact]
@@ -76,15 +83,18 @@ namespace Spittoon.Tests
 
             var dict = Assert.IsType<Dictionary<string, object?>>(rt);
             var config = Assert.IsType<Dictionary<string, object?>>(dict["config"]);
-            Assert.Equal(8080L, config["port"]);
-            Assert.False((bool)config["debug"]!);
+            var port = Assert.IsType<long>(config["port"]);
+            Assert.Equal(8080L, port);
+            var debug = Assert.IsType<bool>(config["debug"]);
+            Assert.False(debug);
 
             var endpoints = Assert.IsType<List<object?>>(dict["endpoints"]);
             var first = Assert.IsType<Dictionary<string, object?>>(endpoints[0]);
-            Assert.Equal("/api/users", first["path"]);
+            Assert.Equal("/api/users", Assert.IsType<string>(first["path"]));
 
-            var secondAuth = ((Dictionary<string, object?>)((Dictionary<string, object?>)endpoints[1])["auth"]);
-            Assert.Equal("admin", secondAuth["role"]);
+            var second = Assert.IsType<Dictionary<string, object?>>(endpoints[1]);
+            var secondAuth = Assert.IsType<Dictionary<string, object?>>(second["auth"]);
+            Assert.Equal("admin", Assert.IsType<string>(secondAuth["role"]));
         }
 
         [Fact]
@@ -99,10 +109,11 @@ namespace Spittoon.Tests
                 // end of file
             ";
 
-            var result = (Dictionary<string, object?>)_deserializer.Parse(spittoon);
-            var server = (Dictionary<string, object?>)result["server"];
-            Assert.Equal("localhost", server["host"]);
-            Assert.Equal(8080L, server["port"]);
+            var parsed = _deserializer.Parse(spittoon);
+            var result = Assert.IsType<Dictionary<string, object?>>(parsed);
+            var server = Assert.IsType<Dictionary<string, object?>>(result["server"]);
+            Assert.Equal("localhost", Assert.IsType<string>(server["host"]));
+            Assert.Equal(8080L, Assert.IsType<long>(server["port"]));
         }
 
         [Fact]
@@ -112,11 +123,11 @@ namespace Spittoon.Tests
             string withSemicolons = "{a:1; b:2; c:3}";
             string mixed = "{a:1, b:2; c:3}";
 
-            var d1 = (Dictionary<string, object?>)_deserializer.Parse(withCommas);
-            var d2 = (Dictionary<string, object?>)_deserializer.Parse(withSemicolons);
-            var d3 = (Dictionary<string, object?>)_deserializer.Parse(mixed);
+            var d1 = Assert.IsType<Dictionary<string, object?>>(_deserializer.Parse(withCommas));
+            var d2 = Assert.IsType<Dictionary<string, object?>>(_deserializer.Parse(withSemicolons));
+            var d3 = Assert.IsType<Dictionary<string, object?>>(_deserializer.Parse(mixed));
 
-            Assert.All(new[] { d1, d2, d3 }, d => Assert.Equal(3L, d.Count));
+            Assert.All(new[] { d1, d2, d3 }, d => Assert.Equal(3L, (long)d.Count));
         }
 
         [Fact]
@@ -135,15 +146,16 @@ namespace Spittoon.Tests
 
             string sp = _serializer.Serialize(doc, Formatting.Indented);
 
-            // serializer should prefer unlabeled rows — look for '[' row forms rather than '{ id:' per row
+            // serializer should prefer unlabeled rows  look for '[' row forms rather than '{ id:' per row
             Assert.DoesNotContain("{ id:1", sp);
             Assert.Contains("[\n", sp); // rows array newline
 
-            var parsed = (Dictionary<string, object?>)_deserializer.Parse(sp);
-            var users = (Dictionary<string, object?>)parsed["users"];
-            var rows = (List<object?>)users["rows"];
+            var parsed = Assert.IsType<Dictionary<string, object?>>(_deserializer.Parse(sp));
+            var users = Assert.IsType<Dictionary<string, object?>>(parsed["users"]);
+            var rows = Assert.IsType<List<object?>>(users["rows"]);
             Assert.Equal(2, rows.Count);
-            Assert.Equal(1L, ((Dictionary<string, object?>)rows[0])["id"]);
+            var firstRow = Assert.IsType<Dictionary<string, object?>>(rows[0]);
+            Assert.Equal(1L, Assert.IsType<long>(firstRow["id"]));
         }
     }
 }

@@ -36,7 +36,7 @@ namespace Spittoon
             return instance;
         }
 
-        public dynamic DeserializeDynamic(string text)
+        public dynamic? DeserializeDynamic(string text)
         {
             var result = Parse(text);
 
@@ -112,15 +112,22 @@ namespace Spittoon
             if (typeof(IEnumerable).IsAssignableFrom(targetType) && value is List<object?> list)
             {
                 var elementType = targetType.IsArray
-                    ? targetType.GetElementType()!
+                    ? targetType.GetElementType()
                     : targetType.IsGenericType
                         ? targetType.GetGenericArguments()[0]
                         : typeof(object);
 
-                var typedList = (IList)Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+                if (elementType == null) elementType = typeof(object);
+
+                var typedListObj = Activator.CreateInstance(typeof(List<>).MakeGenericType(elementType));
+                if (typedListObj is not IList typedList)
+                    throw new SpittoonValidationException("Could not create typed list for deserialization");
 
                 foreach (var item in list)
-                    typedList.Add(ConvertValue(item, elementType));
+                {
+                    var convertedItem = ConvertValue(item, elementType);
+                    typedList.Add(convertedItem);
+                }
 
                 if (targetType.IsArray)
                 {
@@ -134,7 +141,7 @@ namespace Spittoon
 
             if (value is Dictionary<string, object?> dict)
             {
-                var obj = Activator.CreateInstance(targetType);
+                var obj = Activator.CreateInstance(targetType) ?? throw new SpittoonValidationException($"Could not create instance of type {targetType}");
                 new SpittoonDeserializer().MapToObject(dict, obj);
                 return obj;
             }

@@ -318,7 +318,7 @@ public sealed class SschValidator
         public SpittoonNodeType? ExpectedNodeType { get; private set; }
         public string? PrimitiveType { get; private set; }
 
-        public List<object>? EnumValues { get; private set; }
+        public List<object?>? EnumValues { get; private set; }
         public Regex? Pattern { get; private set; }
 
         public double? MinValue { get; private set; }
@@ -401,7 +401,7 @@ public sealed class SschValidator
                 }
             }
 
-            if (dict.TryGetValue("enum", out var e) && e is List<object> el) node.EnumValues = el;
+            if (dict.TryGetValue("enum", out var e) && e is List<object> el) node.EnumValues = el.Cast<object?>().ToList();
             if (dict.TryGetValue("pattern", out var p) && p is string ps) node.Pattern = new Regex(ps, RegexOptions.ECMAScript | RegexOptions.Compiled);
 
             static bool TryToDouble(object? v, out double result)
