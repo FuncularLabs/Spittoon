@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - 'development/**'
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      package-path: ${{ steps.pack.outputs.package-path }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test ./Spittoon.Tests --no-build --configuration Release --verbosity normal
+
+      - name: Pack Spittoon.Core
+        id: pack
+        run: |
+          dotnet pack Spittoon.Core/Spittoon.Core.csproj -c Release -o ./nupkg
+          echo "package-path=$(pwd)/nupkg" >> $GITHUB_OUTPUT
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spittoon-nupkg
+          path: ./nupkg
+
+      - name: Push to NuGet
+        if: github.ref == 'refs/heads/main'
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_PUBLISH_SECRET }}
+        run: |
+          dotnet nuget push ./nupkg/*.nupkg -k $NUGET_API_KEY -s https://api.nuget.org/v3/index.json --skip-duplicate

@@ -34,7 +34,7 @@ SPITTOON aims to be the smallest set of sensible rules that solves these problem
 
 Simple object (valid SPITTOON — strings with spaces are quoted):
 
-```json
+```csharp
 /* hello.spit */
 {
   message: "Hello, world",
@@ -59,7 +59,7 @@ A real-world before/after — typical appsettings.json (abridged)
 
 Same thing in SPITTOON (explicit, balanced punctuation, connection string quoted because of delimiters):
 
-```json
+```csharp
 /* appsettings.spit */
 {
   Logging: {
@@ -75,7 +75,7 @@ Same thing in SPITTOON (explicit, balanced punctuation, connection string quoted
 
 Serializing a POCO to a `.spit` file:
 
-```json
+```csharp
 // create and write .spit file
 var poco = new AppSettings { /* ... */ };
 var serializer = new SpittoonSerializer();
@@ -85,7 +85,7 @@ File.WriteAllText("appsettings.spit", text); // yes, really that simple
 
 Deserializing to a strongly-typed object:
 
-```json
+```csharp
 // read and map to strongly-typed object
 string raw = File.ReadAllText("appsettings.spit");
 var deserializer = new SpittoonDeserializer();
@@ -95,7 +95,7 @@ var settings = deserializer.Deserialize<AppSettings>(raw);
 
 ### Forgiving vs Strict mode
 
-```json
+```csharp
 // Forgiving: acceptable for human-written configs (allows small syntax relaxations)
 var forgiving = new SpittoonDeserializer(SpittoonMode.Forgiving);
 var dyn = forgiving.DeserializeDynamic(File.ReadAllText("loose.spit"));
@@ -107,7 +107,7 @@ var typed = strict.Deserialize<MyConfig>(File.ReadAllText("clean.spit"));
 
 ### Simple syntax validation
 
-```json
+```csharp
 bool ok = Spittoon.Validation.SpittoonValidator.IsValid(text, SpittoonMode.Forgiving);
 var result = Spittoon.Validation.SpittoonValidator.ValidateSyntax(text);
 // result contains detailed error info when syntax is broken
@@ -115,7 +115,7 @@ var result = Spittoon.Validation.SpittoonValidator.ValidateSyntax(text);
 
 ### Full SSCH schema validation
 
-```json
+```csharp
 // load schema (SSCH is a compact schema language for SPITTOON)
 var ssch = File.ReadAllText("my-schema.spit");
 var validator = new Spittoon.Validation.SschValidator(ssch);
@@ -143,7 +143,7 @@ JSON (verbose, repetitive):
 
 SPITTOON tabular form (clear header, compact rows). Note: header types are recommended; rows omit labels for brevity:
 
-```json
+```csharp
 users: {
   header: { id:int, name:str, active:bool },
   rows: [
@@ -156,7 +156,7 @@ users: {
 
 If you prefer the rows as objects (more explicit, still compact):
 
-```json
+```csharp
 users: {
   header: { id:int, name:str, active:bool },
   rows: [
@@ -176,7 +176,7 @@ Why this helps:
 
 A slightly more realistic example — log lines with metadata. Per RFC, timestamps and messages containing colons or spaces must be quoted:
 
-```json
+```csharp
 logs: {
   header: { ts:str, lvl:str, msg:str, meta:obj },
   rows: [
@@ -190,8 +190,8 @@ The serializer and validator already understand this `header`+`rows` shape and w
 
 ## Badges
 
-[![NuGet](https://img.shields.io/nuget/v/Spittoon.svg)](https://www.nuget.org/packages/Spittoon)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml)](https://github.com/FuncularLabs/Spittoon/actions)
+[![NuGet](https://img.shields.io/nuget/v/Spittoon.Core.svg)](https://www.nuget.org/packages/Spittoon.Core)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main)](https://github.com/FuncularLabs/Spittoon/actions)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Quotes? We don't need no stinkin' quotes.](https://img.shields.io/badge/quotes-?--We--don't--need--no--stinkin'--quotes.-orange)]()
 
