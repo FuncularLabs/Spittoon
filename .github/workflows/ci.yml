@@ -84,30 +84,30 @@ jobs:
         id: find_nupkg
         run: |
           set -e
-          if [ -z "$(ls -A nupkg 2>/dev/null || true)" ]; then
+          # find any .nupkg produced by the artifact
+          f=$(find . -type f -name "*.nupkg" | head -n1 || true)
+          if [ -z "$f" ]; then
             echo "No nupkg was downloaded; skipping release creation"
-            echo "::set-output name=skip::true"
+            echo "skip=true" >> $GITHUB_OUTPUT
             exit 0
           fi
-          f=$(ls nupkg/*.nupkg | head -n1)
           bn=$(basename "$f")
           ver=$(echo "$bn" | sed -E 's/^.+\.([0-9]+\.[0-9]+\.[0-9]+[^.]*)\.nupkg$/\1/')
           if [ -z "$ver" ]; then
             ver="run-${GITHUB_RUN_NUMBER}"
           fi
-          echo "version=$ver"
-          echo "nupkg=$f"
-          echo "package_name=$bn"
-          echo "::set-output name=version::$ver"
-          echo "::set-output name=nupkg::$f"
-          echo "::set-output name=package_name::$bn"
+          echo "version=$ver" >> $GITHUB_OUTPUT
+          echo "nupkg=$f" >> $GITHUB_OUTPUT
+          echo "package_name=$bn" >> $GITHUB_OUTPUT
+        env:
+          GITHUB_OUTPUT: ${{ github.step_summary }}
 
       - name: Check skip
         if: steps.find_nupkg.outputs.skip == 'true'
         run: |
           echo "Skipping release because no package was produced in the build."
 
-      - name: Create or reuse Release
+      - name: Create or reuse Release via API
         if: steps.find_nupkg.outputs.skip != 'true'
         id: create_release
         run: |
@@ -116,18 +116,21 @@ jobs:
           tag="v$version"
           repo="${GITHUB_REPOSITORY}"
 
-          # Check if release for tag exists
+          # Try to get existing release by tag
           resp=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$repo/releases/tags/$tag" || true)
           if echo "$resp" | grep -q 'Not Found'; then
             echo "Release for $tag not found; creating"
             create_resp=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" https://api.github.com/repos/$repo/releases -d "{\"tag_name\":\"$tag\",\"name\":\"Release $version\",\"body\":\"Automated release for $version\"}")
-            upload_url=$(echo "$create_resp" | python3 -c "import sys, json; print(json.load(sys.stdin)['upload_url'])")
+            upload_url=$(echo "$create_resp" | python3 -c "import sys, json; print(json.load(sys.stdin).get('upload_url',''))")
           else
             echo "Release exists; will reuse"
-            upload_url=$(echo "$resp" | python3 -c "import sys, json; print(json.load(sys.stdin)['upload_url'])")
+            upload_url=$(echo "$resp" | python3 -c "import sys, json; print(json.load(sys.stdin).get('upload_url',''))")
           fi
-          echo "upload_url=$upload_url"
-          echo "::set-output name=upload_url::$upload_url"
+          if [ -z "$upload_url" ]; then
+            echo "Failed to determine upload_url from GitHub response"
+            exit 1
+          fi
+          echo "upload_url=$upload_url" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
