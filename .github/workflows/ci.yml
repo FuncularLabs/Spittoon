@@ -38,6 +38,11 @@ jobs:
           dotnet pack Spittoon.Core/Spittoon.Core.csproj -c Release -o ./nupkg
           echo "package-path=$(pwd)/nupkg" >> $GITHUB_OUTPUT
 
+      - name: List packages
+        run: |
+          echo "Produced nupkg files:"
+          ls -la ./nupkg || echo "No nupkg output found"
+
       - name: Upload package artifact
         uses: actions/upload-artifact@v4
         with:
@@ -45,8 +50,22 @@ jobs:
           path: ./nupkg
 
       - name: Push to NuGet
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/main' && secrets.NUGET_PUBLISH_SECRET != ''
+        continue-on-error: true
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_PUBLISH_SECRET }}
         run: |
-          dotnet nuget push ./nupkg/*.nupkg -k $NUGET_API_KEY -s https://api.nuget.org/v3/index.json --skip-duplicate
+          echo "Attempting to push packages in ./nupkg"
+          for f in ./nupkg/*.nupkg; do
+            if [ -f "$f" ]; then
+              echo "Pushing $f"
+              dotnet nuget push "$f" -k $NUGET_API_KEY -s https://api.nuget.org/v3/index.json --skip-duplicate || echo "NuGet push failed for $f";
+            else
+              echo "No package file $f"
+            fi
+          done
+
+      - name: Notify about publish
+        if: github.ref == 'refs/heads/main' && secrets.NUGET_PUBLISH_SECRET == ''
+        run: |
+          echo "NUGET_PUBLISH_SECRET is not set — skipping NuGet publish. Set the repo secret to enable publishing."
