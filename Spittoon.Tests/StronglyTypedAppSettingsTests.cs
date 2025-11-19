@@ -11,7 +11,7 @@ public class StronglyTypedAppSettingsTests
         var text = Embedded.Read("Spittoon.Tests.Fixtures.appsettings.spit");
         var des = new Spittoon.SpittoonDeserializer(Spittoon.SpittoonMode.Forgiving);
         dynamic dyn = des.DeserializeDynamic(text);
-        var typed = des.Deserialize<AppSettings>(text);
+        var typed = des.Deserialize<AppSettingsDocument>(text);
 
         var ser = new Spittoon.SpittoonSerializer(Spittoon.SpittoonMode.Forgiving);
         var outText = ser.Serialize(typed, Spittoon.Formatting.Indented);

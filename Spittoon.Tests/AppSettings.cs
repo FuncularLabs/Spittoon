@@ -1,6 +1,8 @@
+using System.Collections.Generic;
+
 namespace Spittoon.Tests;
 
-public class AppSettings
+public class AppSettingsDocument
 {
     public LoggingSettings AppSettings { get; set; } = new();
     public List<UserRow> users { get; set; } = new();
