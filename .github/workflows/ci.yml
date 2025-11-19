@@ -147,15 +147,25 @@ jobs:
           nupkg_path='${{ steps.find_nupkg.outputs.nupkg }}'
           pkg_name='${{ steps.find_nupkg.outputs.package_name }}'
           echo "Uploading $nupkg_path to $upload_url_base?name=$pkg_name"
-          http_code=$(curl -sS -w "%{http_code}" -X POST \
+          enc_name=$(python3 - <<'PY'
+import sys, urllib.parse
+print(urllib.parse.quote(sys.argv[1], safe=''))
+PY
+"$pkg_name")
+          echo "Encoded name: $enc_name"
+          http_code=$(curl -sS -o /dev/null -w "%{http_code}" -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Content-Type: application/octet-stream" \
             --data-binary @"$nupkg_path" \
-            "$upload_url_base?name=$pkg_name")
+            "$upload_url_base?name=$enc_name")
+          echo "Upload HTTP code: $http_code"
           if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
             echo "Upload succeeded"
           else
             echo "Upload failed with HTTP code $http_code"
+            # attempt to fetch more diagnostics
+            echo "Getting upload_url debug response body:"
+            curl -v -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$upload_url_base" || true
             exit 1
           fi
         env:
