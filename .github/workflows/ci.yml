@@ -44,7 +44,9 @@ jobs:
           name: spittoon-nupkg
           path: ./nupkg
 
-      # Optional: publish to NuGet.org using API key stored in secrets.NUGET_API_KEY
-      #- name: Push to NuGet
-      #  if: github.ref == 'refs/heads/main'
-      #  run: dotnet nuget push ./nupkg/*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
+      - name: Push to NuGet
+        if: github.ref == 'refs/heads/main'
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_PUBLISH_SECRET }}
+        run: |
+          dotnet nuget push ./nupkg/*.nupkg -k $NUGET_API_KEY -s https://api.nuget.org/v3/index.json --skip-duplicate
