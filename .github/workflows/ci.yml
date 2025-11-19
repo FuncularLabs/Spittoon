@@ -68,3 +68,32 @@ jobs:
               echo "No package file $f"
             fi
           done
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && always()
+    steps:
+      - name: Download package artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: spittoon-nupkg
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        with:
+          tag_name: v${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: "Automated release from CI for ${{ github.ref_name }}"
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Nupkg as release asset
+        uses: softprops/action-gh-release@v1
+        with:
+          files: nupkg/*.nupkg
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
