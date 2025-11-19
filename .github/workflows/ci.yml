@@ -156,11 +156,7 @@ jobs:
             curl -s -X DELETE -H "Authorization: token $GITHUB_TOKEN" "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/assets/$asset_id" || echo "delete failed"
           fi
 
-          enc_name=$(python3 - <<'PY'
-import sys, urllib.parse
-print(urllib.parse.quote(sys.argv[1], safe=''))
-PY
-"$pkg_name")
+          enc_name=$(python3 -c "import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1], safe=''))" "$pkg_name")
           echo "Encoded name: $enc_name"
 
           # Save response and verbose output for diagnostics
