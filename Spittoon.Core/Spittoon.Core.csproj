@@ -21,6 +21,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageTags>#Spittoon; #Serialization; #TOON; #JSON; #CSV; #CSharp; #.NET</PackageTags>
     <PackageReleaseNotes>Initial package release</PackageReleaseNotes>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
   </PropertyGroup>
 
   <ItemGroup>
