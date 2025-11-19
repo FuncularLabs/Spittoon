@@ -45,7 +45,7 @@ Simple object (valid SPITTOON — strings with spaces are quoted):
 
 A real-world before/after — typical appsettings.json (abridged)
 
-```csharp
+```json
 // appsettings.json (typical, quote soup)
 {
   "Logging": {
@@ -191,8 +191,8 @@ The serializer and validator already understand this `header`+`rows` shape and w
 ## Badges
 
 [![NuGet](https://img.shields.io/nuget/v/Spittoon.Core.svg)](https://www.nuget.org/packages/Spittoon.Core)
-[![Build Status](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main)](https://github.com/FuncularLabs/Spittoon/actions)
+[![CI status](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main&label=CI)](https://github.com/FuncularLabs/Spittoon/actions)
+[![Tests](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main&label=Tests)](https://github.com/FuncularLabs/Spittoon/actions)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Quotes? We don't need no stinkin' quotes.](https://img.shields.io/badge/quotes-?--We--don't--need--no--stinkin'--quotes.-orange)]()
 
 Go forth. Expectoration of clean data is now in your hands.
