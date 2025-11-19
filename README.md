@@ -1,6 +1,6 @@
 ### SPITTOON–Semicolon-Punctuated, Interoperable, Tersely-Typed Open Object Notation
 
-**Version:** 0.1.2
+**Version:** 0.1.3
 
 ![SPITTOON logo](https://raw.githubusercontent.com/FuncularLabs/Spittoon/main/spittoon-logo-small.jpg)
 
@@ -48,7 +48,7 @@ Simple object (valid SPITTOON — strings with spaces are quoted):
 
 A real-world before/after — typical appsettings.json (abridged)
 
-```json
+```csharp
 // appsettings.json (typical, quote soup)
 {
   "Logging": {
