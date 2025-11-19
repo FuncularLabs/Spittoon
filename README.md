@@ -190,7 +190,7 @@ The serializer and validator already understand this `header`+`rows` shape and w
 
 ## Badges
 
-[![NuGet](https://img.shields.io/nuget/v/Spittoon.svg)](https://www.nuget.org/packages/Spittoon)
+[![NuGet](https://img.shields.io/nuget/v/Spittoon.Core.svg)](https://www.nuget.org/packages/Spittoon.Core)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main)](https://github.com/FuncularLabs/Spittoon/actions)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Quotes? We don't need no stinkin' quotes.](https://img.shields.io/badge/quotes-?--We--don't--need--no--stinkin'--quotes.-orange)]()
