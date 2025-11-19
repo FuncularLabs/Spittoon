@@ -8,7 +8,7 @@
 [![Downloads](https://img.shields.io/nuget/dt/Spittoon.Core.svg)](https://www.nuget.org/packages/Spittoon.Core)
 [![CI status](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main&label=CI)](https://github.com/FuncularLabs/Spittoon/actions)
 [![Tests](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main&label=Tests)](https://github.com/FuncularLabs/Spittoon/actions)
-
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 
 > First there was CSV. Then XML arrived wearing a tuxedo nobody asked for. Then JSON showed up, drunk on quotes and braces. Then TOON tried to fix everything and mostly just confused people. And now, finally, the format to end the format wars: **SPITTOON**.
@@ -223,6 +223,5 @@ Because JSON had too much baggage, CSV was too flat, TOON too quirky in the brac
 [![Downloads](https://img.shields.io/nuget/dt/Spittoon.Core.svg)](https://www.nuget.org/packages/Spittoon.Core)
 [![CI status](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main&label=CI)](https://github.com/FuncularLabs/Spittoon/actions)
 [![Tests](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main&label=Tests)](https://github.com/FuncularLabs/Spittoon/actions)
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 Go forth. Expectoration of clean data is now in your hands.
