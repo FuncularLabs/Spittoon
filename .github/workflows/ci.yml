@@ -84,9 +84,7 @@ jobs:
         run: |
           set -e
           f=$(ls nupkg/*.nupkg | head -n1)
-          echo "found=$f"
           bn=$(basename "$f")
-          echo "basename=$bn"
           # Expect package id.version.nupkg or packageid.version.nupkg
           ver=$(echo "$bn" | sed -E 's/^.+\.([0-9]+\.[0-9]+\.[0-9]+[^.]*)\.nupkg$/\1/')
           if [ -z "$ver" ]; then
@@ -107,17 +105,3 @@ jobs:
           tag_name: v${{ steps.find_nupkg.outputs.version }}
           release_name: Release ${{ steps.find_nupkg.outputs.version }}
           body: "Automated release from CI for ${{ steps.find_nupkg.outputs.version }}"
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload Nupkg as release asset
-        uses: actions/upload-release-asset@v1
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ${{ steps.find_nupkg.outputs.nupkg }}
-          asset_name: ${{ steps.find_nupkg.outputs.package_name }}
-          asset_content_type: application/octet-stream
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
