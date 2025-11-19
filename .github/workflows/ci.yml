@@ -79,21 +79,45 @@ jobs:
         with:
           name: spittoon-nupkg
 
+      - name: Find nupkg and derive version
+        id: find_nupkg
+        run: |
+          set -e
+          f=$(ls nupkg/*.nupkg | head -n1)
+          echo "found=$f"
+          bn=$(basename "$f")
+          echo "basename=$bn"
+          # Expect package id.version.nupkg or packageid.version.nupkg
+          ver=$(echo "$bn" | sed -E 's/^.+\.([0-9]+\.[0-9]+\.[0-9]+[^.]*)\.nupkg$/\1/')
+          if [ -z "$ver" ]; then
+            # fallback: use run number
+            ver="run-${GITHUB_RUN_NUMBER}"
+          fi
+          echo "version=$ver"
+          echo "nupkg=$f"
+          echo "package_name=$bn"
+          echo "::set-output name=version::$ver"
+          echo "::set-output name=nupkg::$f"
+          echo "::set-output name=package_name::$bn"
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         with:
-          tag_name: v${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          body: "Automated release from CI for ${{ github.ref_name }}"
+          tag_name: v${{ steps.find_nupkg.outputs.version }}
+          release_name: Release ${{ steps.find_nupkg.outputs.version }}
+          body: "Automated release from CI for ${{ steps.find_nupkg.outputs.version }}"
           draft: false
           prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload Nupkg as release asset
-        uses: softprops/action-gh-release@v1
+        uses: actions/upload-release-asset@v1
         with:
-          files: nupkg/*.nupkg
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ${{ steps.find_nupkg.outputs.nupkg }}
+          asset_name: ${{ steps.find_nupkg.outputs.package_name }}
+          asset_content_type: application/octet-stream
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
