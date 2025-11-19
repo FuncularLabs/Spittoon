@@ -50,12 +50,16 @@ jobs:
           path: ./nupkg
 
       - name: Push to NuGet
-        if: github.ref == 'refs/heads/main' && secrets.NUGET_PUBLISH_SECRET != ''
+        if: github.ref == 'refs/heads/main'
         continue-on-error: true
         env:
           NUGET_API_KEY: ${{ secrets.NUGET_PUBLISH_SECRET }}
         run: |
           echo "Attempting to push packages in ./nupkg"
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "NUGET_PUBLISH_SECRET is not set — skipping NuGet publish."
+            exit 0
+          fi
           for f in ./nupkg/*.nupkg; do
             if [ -f "$f" ]; then
               echo "Pushing $f"
@@ -64,8 +68,3 @@ jobs:
               echo "No package file $f"
             fi
           done
-
-      - name: Notify about publish
-        if: github.ref == 'refs/heads/main' && secrets.NUGET_PUBLISH_SECRET == ''
-        run: |
-          echo "NUGET_PUBLISH_SECRET is not set — skipping NuGet publish. Set the repo secret to enable publishing."
