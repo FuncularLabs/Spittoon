@@ -106,7 +106,7 @@ jobs:
         run: |
           echo "Skipping release because no package was produced in the build."
 
-      - name: Create or reuse Release via API
+      - name: Create or reuse Release via API (use release id)
         if: steps.find_nupkg.outputs.skip != 'true'
         id: create_release
         run: |
@@ -115,35 +115,34 @@ jobs:
           tag="v$version"
           repo="${GITHUB_REPOSITORY}"
 
-          # Try to get existing release by tag
           echo "Checking for existing release for tag $tag"
           resp=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$repo/releases/tags/$tag" ) || true
 
           if echo "$resp" | grep -q 'Not Found'; then
             echo "Release for $tag not found; creating"
             create_resp=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" https://api.github.com/repos/$repo/releases -d "{\"tag_name\":\"$tag\",\"name\":\"Release $version\",\"body\":\"Automated release for $version\"}")
-            upload_url=$(echo "$create_resp" | python3 -c "import sys, json; print(json.load(sys.stdin).get('upload_url',''))")
+            release_id=$(echo "$create_resp" | python3 -c "import sys, json; print(json.load(sys.stdin).get('id',''))")
           else
             echo "Release exists; will reuse"
-            upload_url=$(echo "$resp" | python3 -c "import sys, json; print(json.load(sys.stdin).get('upload_url',''))")
+            release_id=$(echo "$resp" | python3 -c "import sys, json; print(json.load(sys.stdin).get('id',''))")
           fi
 
-          if [ -z "$upload_url" ]; then
-            echo "Failed to determine upload_url from GitHub response"
+          if [ -z "$release_id" ]; then
+            echo "Failed to determine release id from GitHub response"
             echo "resp="$resp
             exit 1
           fi
 
-          echo "upload_url=$upload_url" >> $GITHUB_OUTPUT
+          upload_url_base="https://uploads.github.com/repos/$repo/releases/$release_id/assets"
+          echo "upload_url_base=$upload_url_base" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Upload Nupkg via curl
+      - name: Upload Nupkg via curl using uploads endpoint
         if: steps.find_nupkg.outputs.skip != 'true'
         run: |
           set -euo pipefail
-          upload_url='${{ steps.create_release.outputs.upload_url }}'
-          upload_url_base="${upload_url%%\{*}"
+          upload_url_base='${{ steps.create_release.outputs.upload_url_base }}'
           nupkg_path='${{ steps.find_nupkg.outputs.nupkg }}'
           pkg_name='${{ steps.find_nupkg.outputs.package_name }}'
           echo "Uploading $nupkg_path to $upload_url_base?name=$pkg_name"
@@ -163,9 +162,8 @@ PY
             echo "Upload succeeded"
           else
             echo "Upload failed with HTTP code $http_code"
-            # attempt to fetch more diagnostics
-            echo "Getting upload_url debug response body:"
-            curl -v -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "$upload_url_base" || true
+            echo "Dumping release info for debug:"
+            curl -sS -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/$release_id" || true
             exit 1
           fi
         env:
