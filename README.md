@@ -32,13 +32,15 @@ SPITTOON aims to be the smallest set of sensible rules that solves these problem
 
 ## Hello World
 
-Simple object:
+Simple object (valid SPITTOON — strings with spaces are quoted):
 
-```spit
-# hello.spit
-message: Hello, world
-count: 3
-active: true
+```json
+/* hello.spit */
+{
+  message: "Hello, world",
+  count: 3,
+  active: true
+}
 ```
 
 A real-world before/after — typical appsettings.json (abridged)
@@ -55,23 +57,25 @@ A real-world before/after — typical appsettings.json (abridged)
 }
 ```
 
-Same thing in SPITTOON (no sea of quotes, still explicit):
+Same thing in SPITTOON (explicit, balanced punctuation, connection string quoted because of delimiters):
 
-```spit
-# appsettings.spit
-Logging: {
-  LogLevel: { Default: Information, Microsoft: Warning },
-  Console: { IncludeScopes: false }
+```json
+/* appsettings.spit */
+{
+  Logging: {
+    LogLevel: { Default: Information, Microsoft: Warning },
+    Console: { IncludeScopes: false }
+  },
+  ConnectionStrings: { DefaultConnection: "Server=.;Database=App;Trusted_Connection=True;" },
+  FeatureFlags: { NewSearch: true }
 }
-ConnectionStrings: { DefaultConnection: Server=.;Database=App;Trusted_Connection=True; }
-FeatureFlags: { NewSearch: true }
 ```
 
 ## Usage (C#)
 
 Serializing a POCO to a `.spit` file:
 
-```csharp
+```json
 // create and write .spit file
 var poco = new AppSettings { /* ... */ };
 var serializer = new SpittoonSerializer();
@@ -81,7 +85,7 @@ File.WriteAllText("appsettings.spit", text); // yes, really that simple
 
 Deserializing to a strongly-typed object:
 
-```csharp
+```json
 // read and map to strongly-typed object
 string raw = File.ReadAllText("appsettings.spit");
 var deserializer = new SpittoonDeserializer();
@@ -91,8 +95,8 @@ var settings = deserializer.Deserialize<AppSettings>(raw);
 
 ### Forgiving vs Strict mode
 
-```csharp
-// Forgiving: acceptable for human-writ large configs (allows small syntax relaxations)
+```json
+// Forgiving: acceptable for human-written configs (allows small syntax relaxations)
 var forgiving = new SpittoonDeserializer(SpittoonMode.Forgiving);
 var dyn = forgiving.DeserializeDynamic(File.ReadAllText("loose.spit"));
 
@@ -103,7 +107,7 @@ var typed = strict.Deserialize<MyConfig>(File.ReadAllText("clean.spit"));
 
 ### Simple syntax validation
 
-```csharp
+```json
 bool ok = Spittoon.Validation.SpittoonValidator.IsValid(text, SpittoonMode.Forgiving);
 var result = Spittoon.Validation.SpittoonValidator.ValidateSyntax(text);
 // result contains detailed error info when syntax is broken
@@ -111,7 +115,7 @@ var result = Spittoon.Validation.SpittoonValidator.ValidateSyntax(text);
 
 ### Full SSCH schema validation
 
-```csharp
+```json
 // load schema (SSCH is a compact schema language for SPITTOON)
 var ssch = File.ReadAllText("my-schema.spit");
 var validator = new Spittoon.Validation.SschValidator(ssch);
@@ -137,27 +141,27 @@ JSON (verbose, repetitive):
 ]
 ```
 
-SPITTOON tabular form (clear header, compact rows):
+SPITTOON tabular form (clear header, compact rows). Note: header types are recommended; rows omit labels for brevity:
 
-```spit
+```json
 users: {
-  header: { id: int, name: str, active: bool },
+  header: { id:int, name:str, active:bool },
   rows: [
-    [1; Alice; true];
-    [2; Bob; false];
-    [3; Carol; true]
+    [1, Alice, true],
+    [2, Bob, false],
+    [3, Carol, true]
   ]
 }
 ```
 
 If you prefer the rows as objects (more explicit, still compact):
 
-```spit
+```json
 users: {
-  header: { id: int, name: str, active: bool },
+  header: { id:int, name:str, active:bool },
   rows: [
-    { id: 1, name: Alice, active: true };
-    { id: 2, name: Bob,   active: false };
+    { id: 1, name: Alice, active: true },
+    { id: 2, name: Bob,   active: false },
     { id: 3, name: Carol, active: true }
   ]
 }
@@ -166,29 +170,18 @@ users: {
 Why this helps:
 
 - The header documents column names and types once — less noise when skimming.
-- Rows are short and line-oriented; semicolons make row boundaries obvious in formatted output.
+- Rows are short and line-oriented; commas (or semicolons) make row boundaries obvious in formatted output.
 - Parsers normalize arrays-of-arrays into arrays-of-objects for convenient access (`header` + `rows` → list of dictionaries).
 - Compared to the JSON form above you typically shave both characters and cognitive load.
 
-A slightly more realistic example — log lines with metadata:
-
-**JSON**:
+A slightly more realistic example — log lines with metadata. Per RFC, timestamps and messages containing colons or spaces must be quoted:
 
 ```json
-[
-  { "ts": "2025-01-01T12:00:00Z", "lvl": "INFO", "msg": "Started", "meta": { "pid": 123 } },
-  { "ts": "2025-01-01T12:01:00Z", "lvl": "WARN", "msg": "Slow query", "meta": { "ms": 512 } }
-]
-```
-
-**SPITTOON**:
-
-```spit
 logs: {
-  header: { ts: str, lvl: str, msg: str, meta: obj },
+  header: { ts:str, lvl:str, msg:str, meta:obj },
   rows: [
-    [2025-01-01T12:00:00Z; INFO; Started; { pid: 123 }];
-    [2025-01-01T12:01:00Z; WARN; Slow query; { ms: 512 }]
+    ["2025-01-01T12:00:00Z", INFO, "Started", { pid: 123 }],
+    ["2025-01-01T12:01:00Z", WARN, "Slow query", { ms: 512 }]
   ]
 }
 ```
