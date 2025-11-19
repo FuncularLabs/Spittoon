@@ -32,10 +32,10 @@ public class ReservedKeywordTests
 
 public class Wrapper
 {
-    public Tabular doc { get; set; } = new();
+    public TabularModel doc { get; set; } = new();
 }
 
-public class Tabular
+public class TabularModel
 {
     public Dictionary<string, string> header { get; set; } = new();
     public List<Dictionary<string, string>> rows { get; set; } = new();
