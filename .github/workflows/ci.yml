@@ -73,6 +73,8 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main' && always()
+    env:
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Download package artifact
         uses: actions/download-artifact@v4
@@ -84,7 +86,6 @@ jobs:
         id: find_nupkg
         run: |
           set -e
-          # find any .nupkg produced by the artifact
           f=$(find . -type f -name "*.nupkg" | head -n1 || true)
           if [ -z "$f" ]; then
             echo "No nupkg was downloaded; skipping release creation"
@@ -99,8 +100,6 @@ jobs:
           echo "version=$ver" >> $GITHUB_OUTPUT
           echo "nupkg=$f" >> $GITHUB_OUTPUT
           echo "package_name=$bn" >> $GITHUB_OUTPUT
-        env:
-          GITHUB_OUTPUT: ${{ github.step_summary }}
 
       - name: Check skip
         if: steps.find_nupkg.outputs.skip == 'true'
@@ -111,13 +110,15 @@ jobs:
         if: steps.find_nupkg.outputs.skip != 'true'
         id: create_release
         run: |
-          set -e
+          set -euo pipefail
           version=${{ steps.find_nupkg.outputs.version }}
           tag="v$version"
           repo="${GITHUB_REPOSITORY}"
 
           # Try to get existing release by tag
-          resp=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$repo/releases/tags/$tag" || true)
+          echo "Checking for existing release for tag $tag"
+          resp=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$repo/releases/tags/$tag" ) || true
+
           if echo "$resp" | grep -q 'Not Found'; then
             echo "Release for $tag not found; creating"
             create_resp=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" https://api.github.com/repos/$repo/releases -d "{\"tag_name\":\"$tag\",\"name\":\"Release $version\",\"body\":\"Automated release for $version\"}")
@@ -126,10 +127,13 @@ jobs:
             echo "Release exists; will reuse"
             upload_url=$(echo "$resp" | python3 -c "import sys, json; print(json.load(sys.stdin).get('upload_url',''))")
           fi
+
           if [ -z "$upload_url" ]; then
             echo "Failed to determine upload_url from GitHub response"
+            echo "resp="$resp
             exit 1
           fi
+
           echo "upload_url=$upload_url" >> $GITHUB_OUTPUT
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -137,16 +141,22 @@ jobs:
       - name: Upload Nupkg via curl
         if: steps.find_nupkg.outputs.skip != 'true'
         run: |
-          set -e
+          set -euo pipefail
           upload_url='${{ steps.create_release.outputs.upload_url }}'
           upload_url_base="${upload_url%%\{*}"
           nupkg_path='${{ steps.find_nupkg.outputs.nupkg }}'
           pkg_name='${{ steps.find_nupkg.outputs.package_name }}'
           echo "Uploading $nupkg_path to $upload_url_base?name=$pkg_name"
-          curl -sS -X POST \
+          http_code=$(curl -sS -w "%{http_code}" -X POST \
             -H "Authorization: token $GITHUB_TOKEN" \
             -H "Content-Type: application/octet-stream" \
             --data-binary @"$nupkg_path" \
-            "$upload_url_base?name=$pkg_name" || echo "Upload failed"
+            "$upload_url_base?name=$pkg_name")
+          if [ "$http_code" -ge 200 ] && [ "$http_code" -lt 300 ]; then
+            echo "Upload succeeded"
+          else
+            echo "Upload failed with HTTP code $http_code"
+            exit 1
+          fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
