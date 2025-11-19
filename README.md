@@ -1,8 +1,27 @@
 ### SPITTOON–Semicolon-Punctuated, Interoperable, Tersely-Typed Open Object Notation
 
-**Version:** 0.1.3
+**Version:** 0.1.4
 
 ![SPITTOON logo](https://raw.githubusercontent.com/FuncularLabs/Spittoon/main/spittoon-logo-small.jpg)
+
+## Reserved keywords
+
+SPITTOON uses a small set of well-known member names for special data shapes. The two primary reserved keywords are:
+
+- `header` — declares a typed column header for tabular sections
+- `rows` — contains the rows for a tabular section (arrays or objects normalized to rows)
+
+If your object model naturally contains properties named `header` or `rows`, you have several options:
+
+- Rename the property in source and use `[SpittoonName("header")]` (or `rows`) on the property to explicitly map the name.
+- Keep the property but quote the key in the `.spit` file so the parser treats it as a normal object member (e.g. `"header": { ... }`).
+- Nest your model under a container object so the top-level `header`/`rows` pair is not confused with your domain property.
+
+Reserved keywords are only treated specially when they form a `header`+`rows` pair with the appropriate shapes; otherwise they behave like normal members.
+
+## Recommended schema extension
+
+We recommend using the extension `.spitsd` for SPITTOON schema files (Spittoon Schema Definition).
 
 Because JSON had too much baggage, CSV was too flat, TOON too quirky in the brackets, and we needed something with actual spit. Terse, human-readable, hierarchical + tabular-ready serialization: comma-or-semicolon separators, optional SSCH schema validation, and a mullet that’s strictly business in the front, pure party in the back.
 
