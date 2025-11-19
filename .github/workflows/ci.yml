@@ -12,6 +12,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      package-path: ${{ steps.pack.outputs.package-path }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,5 +30,21 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Test
+        run: dotnet test ./Spittoon.Tests --no-build --configuration Release --verbosity normal
+
+      - name: Pack Spittoon.Core
+        id: pack
         run: |
-          dotnet test --no-build --configuration Release --verbosity normal
+          dotnet pack Spittoon.Core/Spittoon.Core.csproj -c Release -o ./nupkg
+          echo "package-path=$(pwd)/nupkg" >> $GITHUB_OUTPUT
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spittoon-nupkg
+          path: ./nupkg
+
+      # Optional: publish to NuGet.org using API key stored in secrets.NUGET_API_KEY
+      #- name: Push to NuGet
+      #  if: github.ref == 'refs/heads/main'
+      #  run: dotnet nuget push ./nupkg/*.nupkg -k ${{ secrets.NUGET_API_KEY }} -s https://api.nuget.org/v3/index.json
