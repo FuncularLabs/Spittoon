@@ -45,7 +45,7 @@ Simple object (valid SPITTOON — strings with spaces are quoted):
 
 A real-world before/after — typical appsettings.json (abridged)
 
-```json
+```csharp
 // appsettings.json (typical, quote soup)
 {
   "Logging": {
