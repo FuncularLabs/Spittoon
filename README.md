@@ -8,6 +8,11 @@ Because JSON had too much baggage, CSV was too flat, TOON too quirky in the brac
 
 > First there was CSV. Then XML arrived wearing a tuxedo nobody asked for. Then JSON showed up, drunk on quotes and braces. Then TOON tried to fix everything and mostly just confused people. And now, finally, the format to end the format wars: **SPITTOON**.
 
+[![NuGet](https://img.shields.io/nuget/v/Spittoon.Core.svg)](https://www.nuget.org/packages/Spittoon.Core)
+[![CI status](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main&label=CI)](https://github.com/FuncularLabs/Spittoon/actions)
+[![Tests](https://img.shields.io/github/actions/workflow/status/FuncularLabs/Spittoon/ci.yml?branch=main&label=Tests)](https://github.com/FuncularLabs/Spittoon/actions)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 ## Why SPITTOON exists
 
 - JSON is quote-heavy and verbose — delightful for machines, exhausting for humans who must edit configuration at 02:13.

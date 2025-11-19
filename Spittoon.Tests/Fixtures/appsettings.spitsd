@@ -1,0 +1,16 @@
+{
+  schema: {
+    type: obj,
+    properties: {
+      AppSettings: { type: obj, properties: {
+        Logging: { type: obj, properties: { LogLevel: { type: obj }, Console: { type: obj } } },
+        ConnectionStrings: { type: obj },
+        FeatureFlags: { type: obj }
+      } },
+      users: { type: obj, properties: {
+        header: { type: obj },
+        rows: { type: arr }
+      } }
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  AppSettings: {
+    Logging: {
+      LogLevel: { Default: Information, Microsoft: Warning },
+      Console: { IncludeScopes: false }
+    },
+    ConnectionStrings: { DefaultConnection: "Server=.;Database=App;Trusted_Connection=True;" },
+    FeatureFlags: { NewSearch: true }
+  },
+  users: {
+    header: { id:int, name:str, active:bool },
+    rows: [
+      [1, Alice, true];
+      [2, Bob, false];
+      [3, Carol, true]
+    ]
+  }
+}
