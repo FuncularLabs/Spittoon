@@ -78,17 +78,21 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: spittoon-nupkg
+        continue-on-error: true
 
       - name: Find nupkg and derive version
         id: find_nupkg
         run: |
           set -e
+          if [ -z "$(ls -A nupkg 2>/dev/null || true)" ]; then
+            echo "No nupkg was downloaded; skipping release creation"
+            echo "::set-output name=skip::true"
+            exit 0
+          fi
           f=$(ls nupkg/*.nupkg | head -n1)
           bn=$(basename "$f")
-          # Expect package id.version.nupkg or packageid.version.nupkg
           ver=$(echo "$bn" | sed -E 's/^.+\.([0-9]+\.[0-9]+\.[0-9]+[^.]*)\.nupkg$/\1/')
           if [ -z "$ver" ]; then
-            # fallback: use run number
             ver="run-${GITHUB_RUN_NUMBER}"
           fi
           echo "version=$ver"
@@ -98,10 +102,48 @@ jobs:
           echo "::set-output name=nupkg::$f"
           echo "::set-output name=package_name::$bn"
 
-      - name: Create Release
+      - name: Check skip
+        if: steps.find_nupkg.outputs.skip == 'true'
+        run: |
+          echo "Skipping release because no package was produced in the build."
+
+      - name: Create or reuse Release
+        if: steps.find_nupkg.outputs.skip != 'true'
         id: create_release
-        uses: actions/create-release@v1
-        with:
-          tag_name: v${{ steps.find_nupkg.outputs.version }}
-          release_name: Release ${{ steps.find_nupkg.outputs.version }}
-          body: "Automated release from CI for ${{ steps.find_nupkg.outputs.version }}"
+        run: |
+          set -e
+          version=${{ steps.find_nupkg.outputs.version }}
+          tag="v$version"
+          repo="${GITHUB_REPOSITORY}"
+
+          # Check if release for tag exists
+          resp=$(curl -s -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" "https://api.github.com/repos/$repo/releases/tags/$tag" || true)
+          if echo "$resp" | grep -q 'Not Found'; then
+            echo "Release for $tag not found; creating"
+            create_resp=$(curl -s -X POST -H "Authorization: token $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" https://api.github.com/repos/$repo/releases -d "{\"tag_name\":\"$tag\",\"name\":\"Release $version\",\"body\":\"Automated release for $version\"}")
+            upload_url=$(echo "$create_resp" | python3 -c "import sys, json; print(json.load(sys.stdin)['upload_url'])")
+          else
+            echo "Release exists; will reuse"
+            upload_url=$(echo "$resp" | python3 -c "import sys, json; print(json.load(sys.stdin)['upload_url'])")
+          fi
+          echo "upload_url=$upload_url"
+          echo "::set-output name=upload_url::$upload_url"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Nupkg via curl
+        if: steps.find_nupkg.outputs.skip != 'true'
+        run: |
+          set -e
+          upload_url='${{ steps.create_release.outputs.upload_url }}'
+          upload_url_base="${upload_url%%\{*}"
+          nupkg_path='${{ steps.find_nupkg.outputs.nupkg }}'
+          pkg_name='${{ steps.find_nupkg.outputs.package_name }}'
+          echo "Uploading $nupkg_path to $upload_url_base?name=$pkg_name"
+          curl -sS -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @"$nupkg_path" \
+            "$upload_url_base?name=$pkg_name" || echo "Upload failed"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
