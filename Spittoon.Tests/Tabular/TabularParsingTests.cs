@@ -62,7 +62,7 @@ users:{ header:{ id:int, name:str }; }: [
   { id:2 } // missing name
 ]
 ";
-            var result = validator.Validate(data);
+            var result = validator.Validate(data, SpittoonMode.Strict);
             Assert.False(result.IsValid);
             Assert.NotEmpty(result.Errors);
         }
@@ -85,7 +85,7 @@ users:{ header:{ id:int, name:str }; }: [
   [2] // missing name
 ]
 ";
-            var result = validator.Validate(data);
+            var result = validator.Validate(data, SpittoonMode.Strict);
             Assert.False(result.IsValid);
             Assert.NotEmpty(result.Errors);
         }

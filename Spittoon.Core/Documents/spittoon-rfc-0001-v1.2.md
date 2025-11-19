@@ -175,3 +175,79 @@ schema: {
 };
 /* Note: No 'polish' property—spit don't shine. */
 
+
+### Parsing vs Validation (Mode Semantics)
+
+Parsing and validation are related but distinct phases in Spittoon processing. Implementations should separate these responsibilities: parse the input text with a permissive, forgiving parser to recover a normalized data model, then apply validation rules with a configurable strictness level. This separation improves interoperability and makes schema-driven validation predictable.
+
+- Parsing (syntax):
+  - Always performed in a forgiving manner by default. The parser accepts optional semicolons/commas, comments, unlabeled tabular rows, and other syntactic variants described in this RFC.
+  - The goal of parsing is to produce a normalized in-memory representation (nodes or dictionaries/lists) even for inputs that are syntactically relaxed.
+  - Examples of forgiving parsing behavior:
+    - Comments (`//` and `/* ... */`) are ignored.
+    - Trailing semicolons inside containers are tolerated.
+    - Tabular rows may be provided as unlabeled arrays and are normalized into objects keyed by header labels when a header is present.
+
+- Validation (semantics):
+  - Controlled by `SpittoonMode` which defines the strictness of schema checks. Two modes are recognized by the library API:
+    - `Strict`: enforce schema constraints (types, required properties, min/max lengths, array cardinality, disallow additional properties when `additionalProperties:false`, etc.). Any violation should be reported as an error.
+    - `Forgiving`: ignore extraneous or missing content unless the schema explicitly declares an item as `required`. Forgiving validation should still enforce any constraints explicitly marked as required by the schema (for example, if the schema lists a property in `required`, missing that property should still be reported even in forgiving mode).
+  - Implementations should therefore:
+    1. Parse the input text with a forgiving parser to produce a normalized data model.
+    2. Run validation against the schema using the requested `SpittoonMode` to determine which violations are reported.
+
+Examples
+
+1) Extra/unexpected property
+
+Schema (items are objects with `additionalProperties: false`):
+
+```
+schema: { type: obj; properties: { name: { type: str } }; additionalProperties: false }
+```
+
+Data:
+
+```
+{name:Alice; polish:shiny}
+```
+
+- Forgiving mode: parsing succeeds; validation in `Forgiving` ignores the `polish` property and reports no error.
+- Strict mode: validation reports an error: `additional property 'polish' not allowed`.
+
+2) Missing tabular column
+
+Schema (tabular users with header `id,name` and rows array):
+
+```
+users:{ header:{ id:int, name:str }; }: [ [1, Alice], [2] ]
+```
+
+- Parsing (forgiving): the parser normalizes rows into objects where possible; an unlabeled short row becomes an object with missing keys set to `null`.
+- Validation in `Forgiving` mode: missing columns are tolerated unless the schema specifically marks them as `required`.
+- Validation in `Strict` mode: a validation error is reported for the second row: `Missing column 'name'` or `Array must contain at least 2 items` depending on how rows were supplied.
+
+3) Numeric range and required fields
+
+Schema snippet:
+
+```
+distance:{ type: float; min:0; max:50.0; exclusiveMax:true }
+required:[distance]
+```
+
+Data:
+
+```
+{ distance:50.0 }
+```
+
+- Parsing: succeeds in forgiving mode.
+- Validation in Forgiving: the `required` constraint is honored; since `distance` is present, no required-field error is produced. However, the numeric constraint (`exclusiveMax`) is a semantic rule and will be enforced in Strict mode; in Forgiving mode, implementations may choose to report or ignore such semantic violations depending on policy — in this library, numeric constraint violations are enforced in Strict mode and also reported in Forgiving mode if they are clearly semantic errors that the schema declares (this ensures data quality for numeric domains).
+
+Notes for implementers
+
+- The recommended default API behavior is to parse in forgiving mode and run validation in `Strict` unless the caller explicitly requests `Forgiving` validation. This gives client code predictable safety by default while allowing leniency when desired.
+- Schema-driven `required` fields should be considered authoritative: missing required properties are errors in both modes.
+- Documentation and RFC sections should clearly call out whether an example is showing parsing behavior (syntax acceptance) or validation behavior (semantic enforcement).
+

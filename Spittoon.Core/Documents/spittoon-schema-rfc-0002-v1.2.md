@@ -175,3 +175,45 @@ schema: {
 };
 /* Note: No 'polish' property—spit don't shine. */
 
+### Parsing vs Validation (Mode Semantics)
+
+Parsing and validation are distinct phases. Implementations SHOULD separate these responsibilities: parse input with a permissive parser to normalize structure, then apply schema validation with configurable strictness. This improves interoperability and provides predictable schema enforcement.
+
+- Parsing (syntax):
+  - Performed forgivingly to accept comments, optional semicolons/commas, unlabeled tabular rows, and other syntactic variants described in this RFC.
+  - Produces a normalized in-memory representation (nodes or dictionaries/lists) even for relaxed inputs.
+
+- Validation (semantics):
+  - Controlled by `SpittoonMode`:
+    - `Strict`: enforce schema constraints (types, required properties, min/max, array cardinality, disallow additional properties when `additionalProperties:false`). Report violations as errors.
+    - `Forgiving`: tolerate extraneous or missing content unless the schema marks items as `required`. Required properties remain authoritative and are enforced in both modes.
+  - Recommended flow: parse in forgiving mode, then validate with the caller-chosen `SpittoonMode`.
+
+Examples
+
+1) Extraneous property
+
+Schema: object with `additionalProperties:false`.
+Data: `{ name:Alice; polish:shiny }`
+- Forgiving: parsing succeeds; validation in `Forgiving` ignores `polish`.
+- Strict: validation reports `additional property 'polish' not allowed`.
+
+2) Missing tabular column
+
+Schema: `users:{ header:{ id:int, name:str }; rows:arr }` and rows `[[1,Alice],[2]]`
+- Parsing (forgiving): second row normalized with missing fields set to null.
+- Forgiving validation: missing column tolerated unless `required` is declared.
+- Strict validation: error `Missing column 'name'` or `Array must contain at least 2 items`.
+
+3) Numeric constraints and required fields
+
+Schema: `distance:{ type: float; min:0; max:50.0; exclusiveMax:true }` plus `required:[distance]`
+Data: `{ distance:50.0 }`
+- Parsing: succeeds in forgiving mode.
+- Validation: `required` presence is checked in both modes; `exclusiveMax` violation is reported in Strict. Implementations may also report clear semantic violations in Forgiving mode depending on policy, but required fields are always enforced.
+
+Notes
+
+- Default API guidance: parse forgivingly and validate in Strict unless the caller requests Forgiving validation.
+- Documentation should clearly indicate whether examples show parsing behavior (what is accepted) versus validation behavior (what is reported as an error under a given mode).
+

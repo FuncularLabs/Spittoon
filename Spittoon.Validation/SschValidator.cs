@@ -37,14 +37,20 @@ public sealed class SschValidator
     }
 
     /// <summary>
-    /// Validates the specified data text against the schema.
+    /// Validates the specified data text against the schema using strict validation by default (parsing still forgiving).
     /// </summary>
     /// <param name="dataText">The data text.</param>
     /// <returns>The validation result.</returns>
-    public ValidationResult Validate(string dataText)
+    public ValidationResult Validate(string dataText) => Validate(dataText, SpittoonMode.Strict);
+
+    /// <summary>
+    /// Validates the specified data text against the schema with an explicit mode.
+    /// Parsing is performed in Forgiving mode to allow flexible syntax; validation severity follows the provided mode.
+    /// </summary>
+    public ValidationResult Validate(string dataText, SpittoonMode mode)
     {
-        // Parse the data text into a SpittoonDocument (forgiving by default)
-        var doc = SpittoonDocument.Load(dataText);
+        // Parse the data text into a SpittoonDocument using forgiving mode to tolerate syntax variants
+        var doc = SpittoonDocument.Load(dataText, SpittoonMode.Forgiving);
 
         // Additional raw-check for unlabeled tabular rows (catch arrays shorter than header before NodeBuilder normalization)
         var raw = new SpittoonDeserializer(SpittoonMode.Forgiving).Parse(dataText);
@@ -64,14 +70,14 @@ public sealed class SschValidator
                             string rowPath = string.IsNullOrEmpty(path) ? $"rows[{ri}]" : $"{path}/rows[{ri}]";
                             if (r is System.Collections.IList rlist)
                             {
-                                if (rlist.Count < headerKeys.Count)
+                                if (mode == SpittoonMode.Strict && rlist.Count < headerKeys.Count)
                                     preErrors.Add(new ValidationError(rowPath, $"Array must contain at least {headerKeys.Count} items"));
                             }
                             else if (r is IDictionary<string, object?> rd)
                             {
                                 foreach (var hk in headerKeys)
                                     if (!rd.ContainsKey(hk) || rd[hk] == null)
-                                        preErrors.Add(new ValidationError(rowPath, $"Missing column '{hk}'"));
+                                        if (mode == SpittoonMode.Strict) preErrors.Add(new ValidationError(rowPath, $"Missing column '{hk}'"));
                             }
                             ri++;
                         }
@@ -94,17 +100,17 @@ public sealed class SschValidator
         }
 
         CheckRaw(raw, "");
-        if (preErrors.Count > 0) return ValidationResult.Fail(preErrors);
+        if (preErrors.Count > 0 && mode == SpittoonMode.Strict) return ValidationResult.Fail(preErrors);
 
-        // double-check with text-based heuristic
-        var textErrors = CheckTabularText(dataText);
-        if (textErrors.Count > 0) return ValidationResult.Fail(textErrors);
+        // double-check with text-based heuristic (only strict mode produces errors)
+        var textErrors = CheckTabularText(dataText, mode);
+        if (textErrors.Count > 0 && mode == SpittoonMode.Strict) return ValidationResult.Fail(textErrors);
 
-        // check nodes after NodeBuilder normalization
-        var nodeErrors = CheckTabularOnNodes(doc.Root);
-        if (nodeErrors.Count > 0) return ValidationResult.Fail(nodeErrors);
+        // check nodes after NodeBuilder normalization (only strict mode)
+        var nodeErrors = CheckTabularOnNodes(doc.Root, mode);
+        if (nodeErrors.Count > 0 && mode == SpittoonMode.Strict) return ValidationResult.Fail(nodeErrors);
 
-        return Validate(doc.Root, SpittoonMode.Forgiving);
+        return Validate(doc.Root, mode);
     }
 
     /// <summary>
@@ -116,15 +122,14 @@ public sealed class SschValidator
     public ValidationResult Validate(SpittoonNode dataRoot, SpittoonMode mode)
     {
         var errors = new List<ValidationError>();
-        // TODO: handle mode appropriately
         // pre-check tabular consistency (header/rows)
-        CheckTabularConsistency(dataRoot, errors, "");
-        _root.Validate(dataRoot, errors, "");
+        CheckTabularConsistency(dataRoot, errors, "", mode);
+        _root.Validate(dataRoot, errors, "", mode);
         return errors.Count == 0 ? ValidationResult.Success() : ValidationResult.Fail(errors);
     }
 
     // Recursively check tabular header/rows consistency in the parsed document (called before schema validation)
-    private void CheckTabularConsistency(SpittoonNode node, List<ValidationError> errors, string path)
+    private void CheckTabularConsistency(SpittoonNode node, List<ValidationError> errors, string path, SpittoonMode mode)
     {
         if (node is SpittoonObjectNode obj)
         {
@@ -143,19 +148,22 @@ public sealed class SschValidator
                             foreach (var hk in headerKeys)
                             {
                                 if (!rowObj.Properties.TryGetValue(hk, out var cell) || (cell is SpittoonValueNode vcell && vcell.Value == null))
-                                    errors.Add(new ValidationError(rowPath, $"Missing column '{hk}'"));
+                                {
+                                    if (mode == SpittoonMode.Strict)
+                                        errors.Add(new ValidationError(rowPath, $"Missing column '{hk}'"));
+                                }
                             }
                         }
                         else if (row is SpittoonArrayNode rowArr)
                         {
-                            if (rowArr.Items.Count < headerKeys.Count)
+                            if ((mode == SpittoonMode.Strict) && rowArr.Items.Count < headerKeys.Count)
                                 errors.Add(new ValidationError(rowPath, $"Array must contain at least {headerKeys.Count} items"));
-                            else if (rowArr.Items.Count > headerKeys.Count)
+                            else if ((mode == SpittoonMode.Strict) && rowArr.Items.Count > headerKeys.Count)
                                 errors.Add(new ValidationError(rowPath, $"Array has more items than header columns"));
                         }
                         else
                         {
-                            if (headerKeys.Count > 1)
+                            if (headerKeys.Count > 1 && mode == SpittoonMode.Strict)
                                 errors.Add(new ValidationError(rowPath, "Row scalar cannot be mapped to multi-column header"));
                         }
                     }
@@ -165,13 +173,13 @@ public sealed class SschValidator
             foreach (var kv in obj.Properties)
             {
                 var childPath = string.IsNullOrEmpty(path) ? kv.Key : $"{path}/{kv.Key}";
-                CheckTabularConsistency(kv.Value, errors, childPath);
+                CheckTabularConsistency(kv.Value, errors, childPath, mode);
             }
         }
         else if (node is SpittoonArrayNode arr)
         {
             for (int i = 0; i < arr.Items.Count; i++)
-                CheckTabularConsistency(arr.Items[i], errors, $"{path}[{i}]");
+                CheckTabularConsistency(arr.Items[i], errors, $"{path}[{i}]", mode);
         }
     }
 
@@ -201,8 +209,10 @@ public sealed class SschValidator
         return sb.ToString();
     }
 
-    private List<ValidationError> CheckTabularText(string text)
+    private List<ValidationError> CheckTabularText(string text, SpittoonMode mode)
     {
+        if (mode == SpittoonMode.Forgiving) return new List<ValidationError>();
+
         text = RemoveComments(text);
         var errors = new List<ValidationError>();
         try
@@ -468,7 +478,7 @@ public sealed class SschValidator
         /// <param name="dataNode">The data node.</param>
         /// <param name="errors">The list of errors.</param>
         /// <param name="path">The current path.</param>
-        public void Validate(SpittoonNode dataNode, List<ValidationError> errors, string path)
+        public void Validate(SpittoonNode dataNode, List<ValidationError> errors, string path, SpittoonMode mode)
         {
             if (ExpectedNodeType.HasValue && dataNode.NodeType != ExpectedNodeType.Value)
             {
@@ -567,7 +577,8 @@ public sealed class SschValidator
                                 {
                                     if (!rowObj.Properties.TryGetValue(hk, out var cell) || (cell is SpittoonValueNode vcell && vcell.Value == null))
                                     {
-                                        errors.Add(new ValidationError(rowPath, $"Missing column '{hk}'"));
+                                        if (mode == SpittoonMode.Strict)
+                                            errors.Add(new ValidationError(rowPath, $"Missing column '{hk}'"));
                                         continue;
                                     }
 
@@ -582,9 +593,15 @@ public sealed class SschValidator
                             else if (row is SpittoonArrayNode rowArr)
                             {
                                 if (rowArr.Items.Count < headerKeys.Count)
-                                    errors.Add(new ValidationError(rowPath, $"Array must contain at least {headerKeys.Count} items"));
+                                {
+                                    if (mode == SpittoonMode.Strict)
+                                        errors.Add(new ValidationError(rowPath, $"Array must contain at least {headerKeys.Count} items"));
+                                }
                                 else if (rowArr.Items.Count > headerKeys.Count)
-                                    errors.Add(new ValidationError(rowPath, $"Array has more items than header columns"));
+                                {
+                                    if (mode == SpittoonMode.Strict)
+                                        errors.Add(new ValidationError(rowPath, $"Array has more items than header columns"));
+                                }
                                 else
                                 {
                                     for (int col = 0; col < headerKeys.Count; col++)
@@ -602,15 +619,15 @@ public sealed class SschValidator
                             }
                             else
                             {
-                                if (headerKeys.Count > 1)
+                                if (headerKeys.Count > 1 && mode == SpittoonMode.Strict)
                                     errors.Add(new ValidationError(rowPath, "Row scalar cannot be mapped to multi-column header"));
                             }
                         }
                     }
                 }
 
-                if (MinProperties.HasValue && objNode.Properties.Count < MinProperties) errors.Add(new ValidationError(path, $"Object must contain at least {MinProperties} properties"));
-                if (MaxProperties.HasValue && objNode.Properties.Count > MaxProperties) errors.Add(new ValidationError(path, $"Object must contain at most {MaxProperties} properties"));
+                if (MinProperties.HasValue && mode == SpittoonMode.Strict && objNode.Properties.Count < MinProperties) errors.Add(new ValidationError(path, $"Object must contain at least {MinProperties} properties"));
+                if (MaxProperties.HasValue && mode == SpittoonMode.Strict && objNode.Properties.Count > MaxProperties) errors.Add(new ValidationError(path, $"Object must contain at most {MaxProperties} properties"));
 
                 if (Required != null)
                     foreach (var r in Required)
@@ -626,11 +643,17 @@ public sealed class SschValidator
 
                     if (schema == null && !_additionalPropertiesAllowed)
                     {
-                        errors.Add(new ValidationError(childPath, $"additional property '{kv.Key}' not allowed"));
+                        if (mode == SpittoonMode.Strict)
+                        {
+                            errors.Add(new ValidationError(childPath, $"additional property '{kv.Key}' not allowed"));
+                            continue;
+                        }
+
+                        // forgiving: ignore extraneous property
                         continue;
                     }
 
-                    (schema ?? new SchemaNode()).Validate(kv.Value, errors, childPath);
+                    (schema ?? new SchemaNode()).Validate(kv.Value, errors, childPath, mode);
                 }
 
                 return;
@@ -639,8 +662,8 @@ public sealed class SschValidator
             if (dataNode is SpittoonArrayNode arrNode)
             {
                 int count = arrNode.Items.Count;
-                if (MinItems.HasValue && count < MinItems) errors.Add(new ValidationError(path, $"Array must contain at least {MinItems} items"));
-                if (MaxItems.HasValue && count > MaxItems) errors.Add(new ValidationError(path, $"Array must contain at most {MaxItems} items"));
+                if (MinItems.HasValue && mode == SpittoonMode.Strict && count < MinItems) errors.Add(new ValidationError(path, $"Array must contain at least {MinItems} items"));
+                if (MaxItems.HasValue && mode == SpittoonMode.Strict && count > MaxItems) errors.Add(new ValidationError(path, $"Array must contain at most {MaxItems} items"));
 
                 if (UniqueItems)
                 {
@@ -652,12 +675,12 @@ public sealed class SschValidator
 
                 var itemSchema = Items ?? new SchemaNode();
                 for (int i = 0; i < count; i++)
-                    itemSchema.Validate(arrNode.Items[i], errors, $"{path}[{i}]");
+                    itemSchema.Validate(arrNode.Items[i], errors, $"{path}[{i}]", mode);
             }
         }
     }
 
-    private List<ValidationError> CheckTabularOnNodes(SpittoonNode node)
+    private List<ValidationError> CheckTabularOnNodes(SpittoonNode node, SpittoonMode mode)
     {
         var errors = new List<ValidationError>();
         void Walk(SpittoonNode n, string path)
@@ -676,7 +699,7 @@ public sealed class SschValidator
 
                             if (row is SpittoonArrayNode rowArr)
                             {
-                                if (rowArr.Items.Count < headerKeys.Count)
+                                if (mode == SpittoonMode.Strict && rowArr.Items.Count < headerKeys.Count)
                                     errors.Add(new ValidationError(rowPath, $"Array must contain at least {headerKeys.Count} items"));
                             }
                             else if (row is SpittoonObjectNode rowObj)
@@ -684,12 +707,13 @@ public sealed class SschValidator
                                 foreach (var hk in headerKeys)
                                 {
                                     if (!rowObj.Properties.TryGetValue(hk, out var cell) || (cell is SpittoonValueNode vcell && vcell.Value == null))
-                                        errors.Add(new ValidationError(rowPath, $"Missing column '{hk}'"));
+                                        if (mode == SpittoonMode.Strict)
+                                            errors.Add(new ValidationError(rowPath, $"Missing column '{hk}'"));
                                 }
                             }
                             else
                             {
-                                if (headerKeys.Count > 1)
+                                if (headerKeys.Count > 1 && mode == SpittoonMode.Strict)
                                     errors.Add(new ValidationError(rowPath, "Row scalar cannot be mapped to multi-column header"));
                             }
                         }

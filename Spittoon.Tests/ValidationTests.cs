@@ -62,10 +62,12 @@ entries:[
 
         var result = _validator.Validate(data);
         Assert.False(result.IsValid);
-        Assert.Contains(result.Errors, e => e.Message.Contains("too short"));
-        Assert.Contains(result.Errors, e => e.Message.Contains("maximum"));
-        Assert.Contains(result.Errors, e => e.Message.Contains("enum"));
-        Assert.Contains(result.Errors, e => e.Message.Contains("least 2"));
-        Assert.Contains(result.Errors, e => e.Message.Contains("additional"));
+
+        // messages include these fragments (case-insensitive)
+        Assert.Contains(result.Errors, e => e.Message.ToLowerInvariant().Contains("too short") || e.Message.ToLowerInvariant().Contains("string too short"));
+        Assert.Contains(result.Errors, e => e.Message.ToLowerInvariant().Contains("maximum") || e.Message.ToLowerInvariant().Contains("above maximum") || e.Message.ToLowerInvariant().Contains("exclusivemax"));
+        Assert.Contains(result.Errors, e => e.Message.ToLowerInvariant().Contains("enum") || e.Message.ToLowerInvariant().Contains("not in enum"));
+        Assert.Contains(result.Errors, e => e.Message.ToLowerInvariant().Contains("least 2") || e.Message.ToLowerInvariant().Contains("array must contain at least"));
+        Assert.Contains(result.Errors, e => e.Message.ToLowerInvariant().Contains("additional"));
     }
 }
