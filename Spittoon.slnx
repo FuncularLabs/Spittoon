@@ -1,0 +1,7 @@
+<Solution>
+  <Project Path="Spittoon.Benchmarks/Spittoon.Benchmarks.csproj" />
+  <Project Path="Spittoon.Core/Spittoon.Core.csproj" />
+  <Project Path="Spittoon.Runner/Spittoon.Runner.csproj" />
+  <Project Path="Spittoon.Tests/Spittoon.Tests.csproj" />
+  <Project Path="Spittoon.Validation/Spittoon.Validation.csproj" />
+</Solution>
