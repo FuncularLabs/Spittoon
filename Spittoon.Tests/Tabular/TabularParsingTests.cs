@@ -54,7 +54,7 @@ schema:{
   }
 };
 ";
-            var validator = new Spittoon.Validation.SschValidator(schema);
+            var validator = new Spittoon.Validation.SpitsdValidator(schema);
 
             const string data = @"
 users:{ header:{ id:int, name:str }; }: [
@@ -77,7 +77,7 @@ schema:{
   }
 };
 ";
-            var validator = new Spittoon.Validation.SschValidator(schema);
+            var validator = new Spittoon.Validation.SpitsdValidator(schema);
 
             const string data = @"
 users:{ header:{ id:int, name:str }; }: [

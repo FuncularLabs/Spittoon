@@ -5,7 +5,7 @@ namespace Spittoon.Tests;
 public class AppSettingsDocument
 {
     public LoggingSettings AppSettings { get; set; } = new();
-    public List<UserRow> users { get; set; } = new();
+    public List<UserRow> Users { get; set; } = [];
 }
 
 public class LoggingSettings
@@ -20,7 +20,7 @@ public class LogLevelSettings
 
 public class UserRow
 {
-    public long id { get; set; }
-    public string name { get; set; } = string.Empty;
-    public bool active { get; set; }
+    public long Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public bool Active { get; set; }
 }

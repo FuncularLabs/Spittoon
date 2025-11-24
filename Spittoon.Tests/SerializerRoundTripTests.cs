@@ -16,6 +16,7 @@ namespace Spittoon.Tests
     {
         private readonly SpittoonSerializer _serializer = new();
         private readonly SpittoonDeserializer _deserializer = new(SpittoonMode.Forgiving);
+        private static readonly string[] ExpectedTags = ["champ", "legend"];
 
         [Theory]
         [InlineData("null", null)]
@@ -38,7 +39,7 @@ namespace Spittoon.Tests
         [Fact]
         public void SimpleObject_RoundTrip()
         {
-            var obj = new { name = "Gus", distance = 9.8, active = true, tags = new[] { "champ", "legend" } };
+            var obj = new { name = "Gus", distance = 9.8, active = true, tags = ExpectedTags };
 
             string spittoon = _serializer.Serialize(obj, Formatting.Indented);
 
@@ -61,7 +62,7 @@ namespace Spittoon.Tests
 
             var tags = Assert.IsType<List<object?>>(dict["tags"]);
             var tagStrings = tags.Select(t => Assert.IsType<string>(t)).ToArray();
-            Assert.Equal(new[] { "champ", "legend" }, tagStrings);
+            Assert.Equal(ExpectedTags, tagStrings);
         }
 
         [Fact]
@@ -127,7 +128,7 @@ namespace Spittoon.Tests
             var d2 = Assert.IsType<Dictionary<string, object?>>(_deserializer.Parse(withSemicolons));
             var d3 = Assert.IsType<Dictionary<string, object?>>(_deserializer.Parse(mixed));
 
-            Assert.All(new[] { d1, d2, d3 }, d => Assert.Equal(3L, (long)d.Count));
+            Assert.All([d1, d2, d3], d => Assert.Equal(3L, (long)d.Count));
         }
 
         [Fact]

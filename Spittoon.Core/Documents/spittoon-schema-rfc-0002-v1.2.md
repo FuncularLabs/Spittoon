@@ -96,7 +96,7 @@ employees:{ header:{ id:int, name:str, salary:float }; }: [
 // Nested objects in rows (values can be arrays/objects) — labels omitted in rows
 projects:{ header:{ name:str, tasks:arr, priority:int }; }: [
   [Spittoon, [RFC, Impl, Test], 10],
-  [SSCH, [Schema, Validate], 5]
+  [SPITSD, [Schema, Validate], 5]
 ]
 
 // One-time example showing labeled rows are allowed (tolerated), but not required — parsers accept this form

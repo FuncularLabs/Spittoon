@@ -38,7 +38,7 @@ public static class SpittoonValidator
         }
         catch (SpittoonSyntaxException ex)
         {
-            return ValidationResult.Fail(new List<ValidationError> { new ValidationError("<root>", ex.Message) });
+            return ValidationResult.Fail([new ValidationError("<root>", ex.Message)]);
         }
     }
 }

@@ -1,6 +1,8 @@
 using Xunit;
 using System.Collections.Generic;
 
+#pragma warning disable IDE1006
+
 namespace Spittoon.Tests;
 
 public class ReservedKeywordTests
@@ -10,9 +12,6 @@ public class ReservedKeywordTests
     {
         var text = @"{ doc: { header: { title: str }, rows: [ { title: 'A' }, { title: 'B' } ] } }";
         var des = new Spittoon.SpittoonDeserializer(Spittoon.SpittoonMode.Forgiving);
-        var dyn = des.DeserializeDynamic(text);
-        // Map to a strongly-typed holder
-        var obj = new Wrapper();
         var typed = des.Deserialize<Wrapper>(text);
         Assert.NotNull(typed);
     }
@@ -32,11 +31,13 @@ public class ReservedKeywordTests
 
 public class Wrapper
 {
+    // ReSharper disable once InconsistentNaming
     public TabularModel doc { get; set; } = new();
 }
 
 public class TabularModel
 {
-    public Dictionary<string, string> header { get; set; } = new();
-    public List<Dictionary<string, string>> rows { get; set; } = new();
+    
+    public Dictionary<string, string> header { get; set; } = [];
+    public List<Dictionary<string, string>> rows { get; set; } = [];
 }

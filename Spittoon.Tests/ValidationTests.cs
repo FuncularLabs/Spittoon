@@ -27,7 +27,7 @@ schema:{
   };
 }";
 
-    private readonly SschValidator _validator = new(ContestSchema);
+    private readonly SpitsdValidator _validator = new(ContestSchema);
 
     [Fact]
     public void Valid_ContestEntry_Passes()

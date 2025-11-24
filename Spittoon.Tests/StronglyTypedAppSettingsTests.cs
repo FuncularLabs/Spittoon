@@ -10,13 +10,12 @@ public class StronglyTypedAppSettingsTests
     {
         var text = Embedded.Read("Spittoon.Tests.Fixtures.appsettings.spit");
         var des = new Spittoon.SpittoonDeserializer(Spittoon.SpittoonMode.Forgiving);
-        dynamic dyn = des.DeserializeDynamic(text);
         var typed = des.Deserialize<AppSettingsDocument>(text);
 
         var ser = new Spittoon.SpittoonSerializer(Spittoon.SpittoonMode.Forgiving);
         var outText = ser.Serialize(typed, Spittoon.Formatting.Indented);
 
-        Assert.Contains("users", outText);
+        Assert.Contains("Users", outText);
         Assert.Contains("AppSettings", outText);
     }
 
@@ -24,7 +23,7 @@ public class StronglyTypedAppSettingsTests
     public void Validate_AppSettings_AgainstSchema()
     {
         var schemaText = Embedded.Read("Spittoon.Tests.Fixtures.appsettings.spitsd");
-        var validator = new Spittoon.Validation.SschValidator(schemaText);
+        var validator = new Spittoon.Validation.SpitsdValidator(schemaText);
         var data = Embedded.Read("Spittoon.Tests.Fixtures.appsettings.spit");
         var result = validator.Validate(data, Spittoon.SpittoonMode.Strict);
         Assert.True(result.IsValid);

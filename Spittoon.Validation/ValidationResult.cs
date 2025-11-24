@@ -31,7 +31,7 @@ namespace Spittoon.Validation
         /// Creates a successful validation result.
         /// </summary>
         /// <returns>A successful validation result.</returns>
-        public static ValidationResult Success() => new(true, new List<ValidationError>());
+        public static ValidationResult Success() => new(true, []);
 
         /// <summary>
         /// Creates a failed validation result with the specified errors.

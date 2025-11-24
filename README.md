@@ -1,6 +1,6 @@
 ### SPITTOON–Semicolon-Punctuated, Interoperable, Tersely-Typed Open Object Notation
 
-**Version:** 0.1.5
+**Version:** 0.1.5.1
 
 ![SPITTOON logo](https://raw.githubusercontent.com/FuncularLabs/Spittoon/main/spittoon-logo-small.jpg)
 
@@ -26,7 +26,8 @@ SPITTOON aims to be the smallest set of sensible rules that solves these problem
 - More compact than JSON (fewer quotes, terser separators).
 - Strictly unambiguous (no `is this key quoted or not?` arguments at 3 a.m.).
 - Actually pleasant to hand-edit (line-oriented, optional semicolons for cleanliness).
-- Supporting proper typed tabular sections (think CSV with structure and nesting).
+- Supporting multiple proper typed tabular sections, even embedded within hierarchical data (think CSV with structure and nesting).
+- Unlike JSON, allows line- and stream comments. 
 
 ## Comparison (short and rude)
 
@@ -121,12 +122,12 @@ var result = Spittoon.Validation.SpittoonValidator.ValidateSyntax(text);
 // result contains detailed error info when syntax is broken
 ```
 
-### Full SSCH schema validation
+### Full (SPITSD) schema validation
 
 ```csharp
-// load schema (SSCH is a compact schema language for SPITTOON)
-var ssch = File.ReadAllText("my-schema.spit");
-var validator = new Spittoon.Validation.SschValidator(ssch);
+// load schema (SPITSD is a compact schema language for SPITTOON)
+var ssch = File.ReadAllText("my-schema.spitsd");
+var validator = new Spittoon.Validation.SschValidator(spitsd);
 var validation = validator.Validate(File.ReadAllText("candidate.spit"), SpittoonMode.Strict);
 if (!validation.IsValid) foreach (var e in validation.Errors) Console.WriteLine(e);
 ```
@@ -215,7 +216,7 @@ Reserved keywords are only treated specially when they form a `header`+`rows` pa
 
 We recommend using the extension `.spitsd` for SPITTOON schema files (Spittoon Schema Definition).
 
-Because JSON had too much baggage, CSV was too flat, TOON too quirky in the brackets, and we needed something with actual spit. Terse, human-readable, hierarchical + tabular-ready serialization: comma-or-semicolon separators, optional SSCH schema validation, and a mullet that’s strictly business in the front, pure party in the back.
+Because JSON had too much baggage, CSV was too flat, TOON too quirky in the brackets, and we needed something with actual spit. Terse, human-readable, hierarchical + tabular-ready serialization: comma-or-semicolon separators, optional SPITSD schema validation, and a mullet that’s strictly business in the front, pure party in the back.
 
 ## Badges
 

@@ -8,20 +8,20 @@ using Spittoon;
 namespace Spittoon.Validation;
 
 /// <summary>
-/// Validates data against an SSCH schema.
+/// Validates data against an SPITSD schema.
 /// </summary>
-public sealed class SschValidator
+public sealed class SpitsdValidator
 {
     private readonly SchemaNode _root;
-    private readonly ILogger<SschValidator>? _logger;
+    private readonly ILogger<SpitsdValidator>? _logger;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SschValidator"/> class with the specified schema text.
+    /// Initializes a new instance of the <see cref="SpitsdValidator"/> class with the specified schema text.
     /// </summary>
     /// <param name="schemaText">The schema text.</param>
     /// <param name="logger">The logger.</param>
     /// <exception cref="ArgumentException">Thrown if the schema is invalid.</exception>
-    public SschValidator(string schemaText, ILogger<SschValidator>? logger = null)
+    public SpitsdValidator(string schemaText, ILogger<SpitsdValidator>? logger = null)
     {
         var parsed = new SpittoonDeserializer(SpittoonMode.Forgiving).Parse(schemaText);
 
@@ -29,7 +29,7 @@ public sealed class SschValidator
             !rootDict.TryGetValue("schema", out var schemaObj) ||
             schemaObj is not Dictionary<string, object?> schemaDict)
         {
-            throw new ArgumentException("SSCH document must contain a root object with a 'schema' property that is an object.");
+            throw new ArgumentException("SPITSD document must contain a root object with a 'schema' property that is an object.");
         }
 
         _root = SchemaNode.Build(schemaDict);
@@ -76,7 +76,7 @@ public sealed class SschValidator
                             else if (r is IDictionary<string, object?> rd)
                             {
                                 foreach (var hk in headerKeys)
-                                    if (!rd.ContainsKey(hk) || rd[hk] == null)
+                                    if (!rd.TryGetValue(hk, out var value) || value == null)
                                         if (mode == SpittoonMode.Strict) preErrors.Add(new ValidationError(rowPath, $"Missing column '{hk}'"));
                             }
                             ri++;
@@ -129,7 +129,7 @@ public sealed class SschValidator
     }
 
     // Recursively check tabular header/rows consistency in the parsed document (called before schema validation)
-    private void CheckTabularConsistency(SpittoonNode node, List<ValidationError> errors, string path, SpittoonMode mode)
+    private static void CheckTabularConsistency(SpittoonNode node, List<ValidationError> errors, string path, SpittoonMode mode)
     {
         if (node is SpittoonObjectNode obj)
         {
@@ -209,9 +209,9 @@ public sealed class SschValidator
         return sb.ToString();
     }
 
-    private List<ValidationError> CheckTabularText(string text, SpittoonMode mode)
+    private static List<ValidationError> CheckTabularText(string text, SpittoonMode mode)
     {
-        if (mode == SpittoonMode.Forgiving) return new List<ValidationError>();
+        if (mode == SpittoonMode.Forgiving) return [];
 
         text = RemoveComments(text);
         var errors = new List<ValidationError>();
@@ -232,7 +232,7 @@ public sealed class SschValidator
                     else if (text[headerEnd] == '}') { depth--; if (depth == 0) break; }
                 }
                 if (headerEnd >= text.Length) break;
-                var headerContent = text.Substring(ob + 1, headerEnd - ob - 1);
+                var headerContent = text[(ob + 1)..headerEnd];
                 // count header keys by splitting on ',' at top-level
                 var headerKeys = new List<string>();
                 int start = 0; depth = 0;
@@ -240,10 +240,10 @@ public sealed class SschValidator
                 {
                     if (j == headerContent.Length || (headerContent[j] == ',' && depth == 0))
                     {
-                        var tok = headerContent.Substring(start, j - start).Trim();
+                        var tok = headerContent[start..j].Trim();
                         if (!string.IsNullOrEmpty(tok))
                         {
-                            var k = tok.Split(new[] { ':', ' ' }, StringSplitOptions.RemoveEmptyEntries)[0].Trim();
+                            var k = tok.Split([':', ' '], StringSplitOptions.RemoveEmptyEntries)[0].Trim();
                             if (!string.IsNullOrEmpty(k)) headerKeys.Add(k);
                         }
                         start = j + 1;
@@ -266,7 +266,7 @@ public sealed class SschValidator
                     else if (text[rowsEnd] == ']') { depth--; if (depth == 0) break; }
                 }
                 if (rowsEnd >= text.Length) break;
-                var rowsContent = text.Substring(rb + 1, rowsEnd - rb - 1);
+                var rowsContent = text[(rb + 1)..rowsEnd];
                 // split rows by top-level ';' or ',' separators (rows are separated by ';' in formatted, or ',')
                 var rows = new List<string>();
                 start = 0; depth = 0;
@@ -274,7 +274,7 @@ public sealed class SschValidator
                 {
                     if (j == rowsContent.Length || ((rowsContent[j] == ';' || rowsContent[j] == ',') && depth == 0))
                     {
-                        var tok = rowsContent.Substring(start, j - start).Trim();
+                        var tok = rowsContent[start..j].Trim();
                         if (!string.IsNullOrEmpty(tok)) rows.Add(tok);
                         start = j + 1;
                         continue;
@@ -287,9 +287,9 @@ public sealed class SschValidator
                 for (int ri = 0; ri < rows.Count; ri++)
                 {
                     var row = rows[ri].Trim();
-                    if (row.StartsWith("[") && row.EndsWith("]"))
+                    if (row.StartsWith('[') && row.EndsWith(']'))
                     {
-                        var inner = row.Substring(1, row.Length - 2);
+                        var inner = row[1..^1];
                         // count top-level commas to determine item count
                         int cnt = 0; depth = 0; bool any = false;
                         for (int j = 0; j < inner.Length; j++)
@@ -325,6 +325,12 @@ public sealed class SschValidator
     /// </summary>
     private sealed class SchemaNode
     {
+#pragma warning disable SYSLIB1045
+        private static readonly Regex _regex = new(_typesString, RegexOptions.Compiled);
+        private static readonly Regex _valueRegex = new(_valueString, RegexOptions.Compiled);
+#pragma warning restore SYSLIB1045
+        private const string _typesString = @"^(str|int|float|bool|null|arr|obj)([\?\+\*]|\{\s*\d*\s*,?\s*\d*\s*\})?$";
+        private const string _valueString = "\\{(\\d*)\\s*,\\s*(\\d*)\\}";
         public SpittoonNodeType? ExpectedNodeType { get; private set; }
         public string? PrimitiveType { get; private set; }
 
@@ -349,7 +355,7 @@ public sealed class SschValidator
 
         public List<string>? Required { get; private set; }
 
-        public Dictionary<string, SchemaNode> Properties { get; } = new();
+        public Dictionary<string, SchemaNode> Properties { get; } = [];
 
         public SchemaNode? Items { get; private set; }
 
@@ -368,7 +374,7 @@ public sealed class SschValidator
 
             if (dict.TryGetValue("type", out var typeObj) && typeObj is string typeStr)
             {
-                var match = Regex.Match(typeStr, @"^(str|int|float|bool|null|arr|obj)([\?\+\*]|\{\s*\d*\s*,?\s*\d*\s*\})?$");
+                var match = _regex.Match(typeStr);
                 if (!match.Success)
                     throw new ArgumentException($"Invalid type declaration: {typeStr}");
 
@@ -398,7 +404,7 @@ public sealed class SschValidator
                             node.MinItems = 1;
                             break;
                         default:
-                            var card = Regex.Match(qualifier, "\\{(\\d*)\\s*,\\s*(\\d*)\\}");
+                            var card = _valueRegex.Match(qualifier);
                             if (card.Success)
                             {
                                 if (!string.IsNullOrEmpty(card.Groups[1].Value))
@@ -411,7 +417,7 @@ public sealed class SschValidator
                 }
             }
 
-            if (dict.TryGetValue("enum", out var e) && e is List<object> el) node.EnumValues = el.Cast<object?>().ToList();
+            if (dict.TryGetValue("enum", out var e) && e is List<object> el) node.EnumValues = [.. el.Cast<object?>()];
             if (dict.TryGetValue("pattern", out var p) && p is string ps) node.Pattern = new Regex(ps, RegexOptions.ECMAScript | RegexOptions.Compiled);
 
             static bool TryToDouble(object? v, out double result)
@@ -438,7 +444,7 @@ public sealed class SschValidator
             if (dict.TryGetValue("minProperties", out var mp) && int.TryParse(mp?.ToString(), out var minp)) node.MinProperties = minp;
             if (dict.TryGetValue("maxProperties", out var mp2) && int.TryParse(mp2?.ToString(), out var maxp)) node.MaxProperties = maxp;
             if (dict.TryGetValue("uniqueItems", out var ui) && ui is bool uib) node.UniqueItems = uib;
-            if (dict.TryGetValue("required", out var req) && req is List<object> rl) node.Required = rl.Cast<string>().ToList();
+            if (dict.TryGetValue("required", out var req) && req is List<object> rl) node.Required = [.. rl.Cast<string>()];
 
             if (dict.TryGetValue("properties", out var pr) && pr is Dictionary<string, object?> pd)
                 foreach (var kv in pd)
@@ -546,7 +552,7 @@ public sealed class SschValidator
                     {
                         var headerKeys = new List<string>(hdrObj.Properties.Keys);
 
-                        bool MatchesType(SpittoonNode? node, string? typeName)
+                        static bool MatchesType(SpittoonNode? node, string? typeName)
                         {
                             if (typeName == null) return true;
                             if (node is SpittoonValueNode vn)
@@ -680,7 +686,7 @@ public sealed class SschValidator
         }
     }
 
-    private List<ValidationError> CheckTabularOnNodes(SpittoonNode node, SpittoonMode mode)
+    private static List<ValidationError> CheckTabularOnNodes(SpittoonNode node, SpittoonMode mode)
     {
         var errors = new List<ValidationError>();
         void Walk(SpittoonNode n, string path)

@@ -6,13 +6,14 @@ namespace Spittoon.Tests;
 public class StronglyTypedDeserializationTests
 {
     private readonly SpittoonDeserializer _deserializer = new(SpittoonMode.Forgiving);
+    private static readonly string[] ExpectedTags = ["dev", "music"];
 
     private class Person
     {
         public string Name { get; set; } = "";
         public int Age { get; set; }
         public bool Active { get; set; }
-        public string[] Tags { get; set; } = Array.Empty<string>();
+        public string[] Tags { get; set; } = [];
     }
 
     [Fact]
@@ -25,6 +26,6 @@ public class StronglyTypedDeserializationTests
         Assert.Equal("Alice", person.Name);
         Assert.Equal(30, person.Age);
         Assert.True(person.Active);
-        Assert.Equal(new[] { "dev", "music" }, person.Tags);
+        Assert.Equal(ExpectedTags, person.Tags);
     }
 }
