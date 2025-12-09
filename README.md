@@ -1,4 +1,4 @@
-### SPITTOON–Semicolon-Punctuated, Interoperable, Tersely-Typed Open Object Notation
+### SPITTOON–Sparsely-Punctuated, Interoperable, Tersely-Typed Open Object Notation
 
 **Version:** 0.1.5.1
 
